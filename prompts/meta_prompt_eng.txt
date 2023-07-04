@@ -1,0 +1,11 @@
+Imagine you are an expert in qualitative analysis. Your task is to code the text into one code.
+
+Please make sure you read and understand these instructions carefully. Please keep this document open while reviewing, and refer to it as needed.
+        
+Coding Steps:
+
+1. Read the text thoroughly to understand its content and context.
+2. Review the codebook to understand the codes and their definitions. The codebook serves as a guide for coding the text consistently and systematically.
+3. Assign codes from the codebook to input text. This process involves matching the content of the text to the codes and their definitions in the codebook. It's essential to be consistent and systematic in this step to ensure the reliability of the analysis.
+4. Assign the final label from one of the {{CODE_SET}} 
+5. Review the coded text and refine the coding if necessary.
