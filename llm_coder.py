@@ -31,6 +31,7 @@ def deductive_coding(args):
     codebook_prompt, code_set = RaLLM.codebook2prompt(codebook, format = args.codebook_format, num_of_examples = args.number_of_example, language = args.language, has_context = args.context)
     if args.na_label:
         code_set.append("NA")
+
     # Define the identity modifier and context description   
     if args.language == 'fr':
         meta_prompt = open('prompts/meta_prompt_fr.txt').read()
@@ -43,10 +44,11 @@ def deductive_coding(args):
 
     # Iterate through each row of the data
     results = []
+    model_exp = []
     idx = 0
     for index, row in tqdm.tqdm(data.iterrows(), position=0,total=data.shape[0]):
         # Generate the final prompt
-        prompt = RaLLM.prompt_writer(str(row['data']), str(row['context']), codebook_prompt, code_set, meta_prompt, args.na_label, args.language)
+        prompt = RaLLM.prompt_writer(str(row['data']), str(row['context']), codebook_prompt, code_set, meta_prompt, args.na_label, args.language, args.cot)
         # Obtain the code using the coder function from the RaLLM package
         if args.model == 'text-davinci-003':
             response = RaLLM.coder(prompt, engine = args.model)
@@ -57,8 +59,12 @@ def deductive_coding(args):
             code = majority_vote(code_voters).strip()
         # Add the obtained code to the dataset
         results.append(code)
+        if args.cot:
+            model_exp.append(code)
         idx += 1
         if idx%args.batch_size == 0:
+            if args.cot:
+                data['model_exp'] = pd.Series(model_exp)
             results = RaLLM.code_clean(results,code_set)
             data['result'] = pd.Series(results)
             csv_idx = args.save.index('.csv')
@@ -66,6 +72,8 @@ def deductive_coding(args):
             data.to_csv(file_name, encoding="utf_8_sig", index=False)
 
     #NOTE: Please double check/post processing the results before beofre calculating the inter-rater reliability. Some codes maybe slightly different than the codebook.
+    if args.cot:
+        data['model_exp'] = pd.Series(model_exp)
     results = RaLLM.code_clean(results,code_set)
     data['result'] = pd.Series(results)
     data.to_csv(args.save, encoding="utf_8_sig", index=False)
@@ -134,7 +142,7 @@ def scale_seq_taking():
     - DataFrame: A pandas DataFrame containing the original data and a new column with the obtained scale values.
     """
     # Read the data from the CSV file
-    data = pd.read_csv('./data/scale_example.csv')
+    data = pd.read_csv('./data/scale_example.csv',encoding="utf_8_sig")
     # Construct a series of items using the item_constructor function from the RaLLM package
     items = RaLLM.item_constructor(data, 50)
     # Define an identity modifier and the main prompt template
@@ -166,6 +174,7 @@ def main():
     argparser.add_argument('--verification', type = int,  default = 0)
     argparser.add_argument('--batch_size', type = int,  default = 100)
     argparser.add_argument('--na_label', type = int,  default = 0)
+    argparser.add_argument('--cot', type = int,  default = 0)
     args = argparser.parse_args()
 
     if args.key:

@@ -30,7 +30,7 @@ Deductive coding is a process of coding qualitative data into quantitative ones 
 ```
 
 ### IMPORTANT NOTE
-We are currently running a meta-analysis study to understand the capability and limitation of this tool in deductive coding. If you are interested in contribute to this study, please contact Ziang Xiao at ziang dot xiao at jhu dot edu.
+We are currently running a meta-analysis study to understand the capability and limitations of this tool in deductive coding. If you are interested in contribute to this study, please contact Ziang Xiao at ziang dot xiao at jhu dot edu.
 
 ```
 This LLM-based method is sensitive to codebook design and coding context. Please read our paper before using this tool. 
@@ -84,6 +84,7 @@ You can customize the behavior of the script by modifying the command-line argum
 --verification: Whether to calculate Cohen's Kappa and Krippendorff's Alpha for inter-coder reliability (1 = calculate, 0 = do not calculate). Default is 1. Note: code column is required in the input CSV file.
 --batch_size: The batch size for saving the coding progress. Default is 100 (reuslts will be saved for everyon 100 data points).
 --na_label: Whether to include an "NA" label (1 = include, 0 = do not include). Default is 0.
+--cot: Enable chain-of-thought coding with explanation as part of the output (1 = enable, 0 = disable). Default is 0.
 ```
 
 ## Contact

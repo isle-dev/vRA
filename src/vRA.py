@@ -70,7 +70,7 @@ class RaLLM():
                     code_set.append(str(row['code']))
             elif language =='ch':
                 for index, row in codebook.iterrows():
-                    instruction += "编码: "+ str(row['examples'])+ "描述: " + str(row['code'])+ "; 例子: "+ row['description']+ ";"
+                    instruction += "\n编码: "+ str(row['code'])+ " 描述: " + str(row['description'])+ "; 例子: "+ row['examples']+ ";"
                     code_set.append(str(row['code']))
             else:
                 for index, row in codebook.iterrows():
@@ -78,7 +78,7 @@ class RaLLM():
                     code_set.append(str(row['code']))
         return instruction, code_set
 
-    def prompt_writer(data, context, codebook, code_set, meta_prompt, none_code, language='en'):
+    def prompt_writer(data, context, codebook, code_set, meta_prompt, none_code, language='en',cot = 0):
         """
         This function generates a complete natural language prompt for coding based on the given parameters.
 
@@ -105,27 +105,36 @@ class RaLLM():
 
         if language == 'fr':
             instruction = """
-                Décidez si une question est 
-                """+ candidates + '. Basé sur le livre de codes suivant qui comprend la description de chaque code et quelques exemples.'
-            last_instruction = 'Choisissez parmi les candidats suivants : ' + candidates
+                Décidez si une [texte] est 
+                """+ candidates + '. Basé sur le livre de codes suivant qui comprend la description de chaque code et quelques exemples. Notez que le code est uniquement pour le [texte] et non le contexte, mais le contexte doit être pris en compte lors de la prise de décision.'
+            if cot:
+                last_instruction = 'Choisissez parmi les candidats suivants : ' + candidates + " Avant de prendre une décision, réfléchissons étape par étape avec le contexte et expliquons."
+            else:
+                last_instruction = 'Choisissez parmi les candidats suivants : ' + candidates + " \n"
             codebook_label = 'Livre de codes: '
-            sentence_label = 'Texte: '
+            sentence_label = 'Texte: ['
             context_label = 'Contexte: '
         elif language == 'ch':
             instruction = """
-                根据下列编码对以下文本编码 
-                """+ candidates + '。 基于以下包含每一个编码及其描述的结构性编码本'
-            last_instruction = '从下列编码中选择 ' + candidates
+                根据下列结构性编码本对以下[文本]编码, 注意编码仅针对[]内文本而不是上下文语境, 但分析时要结合上下文语境。 
+                """
+            if cot:
+                last_instruction = '从下列编码中选择 ' + candidates + " 在做出决定之前，根据编码步骤，让我们结合语境一步一步地思考并解释原因。\n"
+            else:
+                last_instruction = '从下列编码中选择 ' + candidates + " \n"
             codebook_label = '编码本: '
-            sentence_label = '文本: '
-            context_label = '情景: '
+            context_label = '上文语境: '
+            sentence_label = '文本: ['
         else:
             instruction = """
-                Classify the text into 
-                """+ candidates + '. Based on the following codebook that includes the description of each code and a few examples.'
-            last_instruction = 'Choose from the following candidates: ' + candidates
+                Classify the [text] into 
+                """+ candidates + '. Based on the following codebook that includes the description of each code and a few examples. Note that the code is only for the [text] not the context, but the context should be considered when making the decision.'
+            if cot:
+                last_instruction = 'Choose from the following candidates: ' + candidates + " Before making a decision, let's think through step by step with the context and explain."
+            else:
+                last_instruction = 'Choose from the following candidates: ' + candidates + " \n"
             codebook_label = 'Codebook: '
-            sentence_label = 'Text: '
+            sentence_label = 'Text: ['
             context_label = 'Context: '
         
         if none_code:
@@ -136,7 +145,7 @@ class RaLLM():
             else:
                 last_instruction += " or 'NA' if none of these codes applies."
 
-        complete_prompt = "\n".join([meta_prompt,instruction, codebook_label+codebook ,sentence_label+data, context_label+context, last_instruction])
+        complete_prompt = "\n".join([meta_prompt,instruction, codebook_label+codebook+'\n', context_label+context+'\n', sentence_label+data+']\n', last_instruction])
         return complete_prompt
 
     #this decorator is used to retry if the rate limits are exceeded

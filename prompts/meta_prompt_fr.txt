@@ -3,8 +3,8 @@ Imaginez que vous êtes un expert en analyse qualitative. Votre tâche consiste 
 Veuillez vous assurer de lire et de comprendre attentivement ces instructions. Veuillez garder ce document ouvert pendant l'examen et vous y référer si nécessaire.
 
 Étapes de codage :
-Lisez attentivement le texte pour en comprendre le contenu et le contexte.
-Consultez le codebook pour comprendre les codes et leurs définitions. Le codebook sert de guide pour coder le texte de manière cohérente et systématique.
-Attribuez des codes du codebook au texte d'entrée. Ce processus consiste à faire correspondre le contenu du texte aux codes et à leurs définitions dans le codebook. Il est essentiel d'être cohérent et systématique dans cette étape pour assurer la fiabilité de l'analyse.
-Attribuez l'étiquette finale à partir de l'un des {{CODE_SET}}
-Examinez le texte codé et affinez le codage si nécessaire.
+1. Lisez attentivement le texte pour en comprendre le contenu et le contexte.
+2. Consultez le codebook pour comprendre les codes et leurs définitions. Le codebook sert de guide pour coder le texte de manière cohérente et systématique.
+3. Attribuez des codes du codebook au texte d'entrée. Ce processus consiste à faire correspondre le contenu du texte aux codes et à leurs définitions dans le codebook. Il est essentiel d'être cohérent et systématique dans cette étape pour assurer la fiabilité de l'analyse.
+4. Attribuez l'étiquette finale à partir de l'un des {{CODE_SET}}
+5. Examinez le texte codé et affinez le codage si nécessaire.
