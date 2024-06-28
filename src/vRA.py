@@ -1,4 +1,5 @@
 import os
+from openai import OpenAI
 import openai
 import re
 import json
@@ -7,17 +8,18 @@ from sklearn.metrics import cohen_kappa_score
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import csv
 
+
 class RaLLM():
-    def __init__(self, api_key):
+    def __init__(self, client):
         """
-        Initialize the RaLLM class with the OpenAI API key.
+        Initialize the RaLLM class with the LLM client.
 
         Parameter:
-        - api_key (str): Your OpenAI API key.
+        - client : Your LLM Client.
         """
-        openai.api_key = api_key
+        self.client = client
 
-    def codebook2prompt(codebook, format, num_of_examples,language = 'en', has_context=False):
+    def codebook2prompt(self,codebook, format, num_of_examples,language = 'en', has_context=False):
         """
         This function converts a codebook in tabular format to a natural language prompt.
 
@@ -78,7 +80,7 @@ class RaLLM():
                     code_set.append(str(row['code']))
         return instruction, code_set
 
-    def prompt_writer(data, context, codebook, code_set, meta_prompt, none_code, language='en',cot = 0):
+    def prompt_writer(self,data, context, codebook, code_set, meta_prompt, none_code, language='en',cot = 0):
         """
         This function generates a complete natural language prompt for coding based on the given parameters.
 
@@ -145,42 +147,50 @@ class RaLLM():
             else:
                 last_instruction += " or 'NA' if none of these codes applies."
 
+        if language == 'fr':
+            last_instruction += " \n la sortie du code est encadrée par {}."
+        elif language == 'ch':
+            last_instruction += " \n 仅输出编码并将输出编码置于{}中"
+        else:
+            last_instruction += " \n the code output enclosed in {}."
         complete_prompt = "\n".join([meta_prompt,instruction, codebook_label+codebook+'\n', context_label+context+'\n', sentence_label+data+']\n', last_instruction])
         return complete_prompt
 
     #this decorator is used to retry if the rate limits are exceeded
+
     @retry(
         reraise=True,
-        stop=stop_after_attempt(1000),
+        stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=(retry_if_exception_type(openai.error.Timeout)
-            | retry_if_exception_type(openai.error.APIError)
-            | retry_if_exception_type(openai.error.APIConnectionError)
-            | retry_if_exception_type(openai.error.RateLimitError)),
+        retry=(retry_if_exception_type(openai.RateLimitError)),
     )
-    def coder(complete_prompt, engine="text-davinci-003", voter = 1):
+    def coder(self,complete_prompt, engine="gpt-3.5-turbo", voter = 1):
         """
         This function uses the OpenAI API to code a given sentence based on the provided complete_prompt.
 
         Parameters:
         - complete_prompt (str): The generated natural language prompt to be sent to the OpenAI API.
-        - engine (str, optional, default="text-davinci-003"): The OpenAI engine to be used for coding. Can be "text-davinci-003" or "gpt-3.5-turbo".
+        - engine (str, optional, default="gpt-3.5-turbo"): The OpenAI engine to be used for coding. Can be "text-davinci-003" or "gpt-3.5-turbo".
 
         Returns:
         - str: The coding result from the OpenAI API.
         """
-        # See API document at https://beta.openai.com/docs/api-reference/completions/create
+        # See API document at https://platform.openai.com/docs/api-reference/chat
         # max tokens: 100 is enough for single question. 
         # temperature: 0 for greedy (argmax). 
-        if engine=='text-davinci-003':
-            response = openai.Completion.create(engine=engine, prompt=complete_prompt, suffix=None, max_tokens=500, temperature=0.0)
-        else:
-            response = openai.ChatCompletion.create(
+        try:
+            response = self.client.chat.completions.create(
             model = engine, 
                 messages=[{"role": "user", "content": complete_prompt}], temperature=0.0, n = voter)
+        except Exception as e:
+            response = e
+            print(response)
+            print(complete_prompt)
+
         return response
+        
     
-    def llm_translator(data, language1, language2, engine="text-davinci-003"):
+    def llm_translator(self,data, language1, language2, engine="text-davinci-003"):
         """
         This function uses the OpenAI API to translate a given sentence from one language to another.
 
@@ -200,11 +210,11 @@ class RaLLM():
         # See API document at https://beta.openai.com/docs/api-reference/completions/create
         # max tokens: 100 is enough for single question. 
         # temperature: 0 for greedy (argmax). 
-        response = openai.Completion.create(engine=engine, prompt="\n".join([instruction,'Sentence: '+data]), suffix=None, max_tokens=100, temperature=0.0)
-        response = response["choices"][0]["text"].strip()
+        response = self.client.chat.completions.create(engine=engine, prompt="\n".join([instruction,'Sentence: '+data]), suffix=None, max_tokens=100, temperature=0.0)
+        response = response.choices[0]["text"].strip()
         return response
 
-    def scale_taker(prompt, item, engine="gpt-3.5-turbo"):
+    def scale_taker(self,prompt, item, engine="gpt-3.5-turbo"):
         """
         This function is used to take the scale for a single item using the specified language model engine.
         
@@ -216,18 +226,14 @@ class RaLLM():
         Returns:
         - str: The scale value for the provided item.
         """
-        if engine=='text-davinci-003':
-            response = openai.Completion.create(engine=engine, prompt="\n".join([prompt, item]), suffix=None, max_tokens=100, temperature=0.0)
-            response = response["choices"][0]["text"].strip()
-        else:
-            completion = openai.ChatCompletion.create(
+        completion = self.client.chat.completion.create(
             model="gpt-3.5-turbo", 
                 messages=[{"role": "user", "content": "\n".join([prompt, item])}], temperature=0.0)
-            response = completion["choices"][0]['message']["content"].strip() 
+        response = completion.choices[0].message.content.strip() 
         result = re.search(r'\d+', response).group()   
         return result
     
-    def scale_taker_seq(prompt, item, engine="gpt-3.5-turbo"):
+    def scale_taker_seq(self,prompt, item, engine="gpt-3.5-turbo"):
         """
         This function is used to take the scale for each item in a single conversation session with mutiple turns.
         It takes the prompt, and then adds the item one by one, asking the model to give the scale for each item one by one.
@@ -245,17 +251,17 @@ class RaLLM():
         context.append({'role': 'user', 'content': prompt})
         for i in item:
             context.append({'role': 'user', 'content': i})
-            completion = openai.ChatCompletion.create(
+            completion = self.client.chat.completion.create(
             model = engine, 
                     messages=context
             ,temperature=0.0)
-            response = completion["choices"][0]['message']["content"].strip()
+            response = completion.choices[0].message.content.strip()
             result = re.search(r'\d+', response).group()               
             context.append({'role': 'assistant', 'content': result})
             response_list.append(result)
         return response_list
 
-    def item_constructor(items, num):
+    def item_constructor(self,items, num):
         """
         This function constructs a list of items with a specified number of elements.
 
@@ -306,20 +312,29 @@ class RaLLM():
         result_converted = [code_set.index(i) for i in result]
         return krippendorff.krippendorff([code_converted, result_converted], missing_items='')
     
-    def code_clean(results, code_set):
+    def code_clean(output, code_set):
         """
         Cleans the codes returned by the model to ensure that only valid codes from the code set are used. Non-existent codes are remained unchanged.
 
         Parameters:
-            results (list): A list of results (codes) returned by the model.
+            output (list): A list of output (codes) returned by the model.
             code_set (list): A list of valid codes.
 
         Returns:
-            list: A cleaned list of results containing only valid codes from the code set.
+            list: A cleaned list of output containing only valid codes from the code set.
         """
-        for i in range(len(results)):
+        formatted_output = []
+        for i in output:
+            pattern = r'\{(.*?)\}'
+            matches = re.findall(pattern, i)
+            if matches:
+                formatted_output.append(matches[0])
+            else:
+                formatted_output.append(i)
+
+        for i in range(len(formatted_output)):
             for code in code_set:
-                if code in results[i]:
-                    results[i] = code
+                if code in formatted_output[i]:
+                    formatted_output[i] = code
                     break
-        return results
+        return formatted_output

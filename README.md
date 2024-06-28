@@ -1,6 +1,15 @@
 # vRA: Virtual Research Assistant
 vRA is a Python Toolkit designed to assist social science discovery with AI. The current version supports deductive coding, coding qualitative data into quantitative ones based on a pre-developed codebook.
 
+## Update Log
+```
+6/27/24
+Adding support for
+  OpenAI v1 API
+  Non-OpenAI models
+  Jupyter Notebook Example
+  OpenAI Batch
+```
 
 ## Installation
 
@@ -62,10 +71,16 @@ context_i: The context for the ith example.
 ```
 
 ### Usage
-Run the main script llm_coder.py using the following command:
+Run the main script deductive_coding.py using the following command:
 ```
-python main.py --input data/data_example.csv --codebook data/codebook_example.csv --save results/results_example.csv --mode deductive_coding  
+python deductive_coding.py --input data/data_example.csv --codebook data/codebook_example.csv --save results/results_example.csv --mode deductive_coding  
 ```
+
+Run the jupyter notebook example deductive_coding.ipynb
+```
+deductive_coding.ipynb
+```
+
 
 ### Arguments
 You can customize the behavior of the script by modifying the command-line arguments:
@@ -75,16 +90,16 @@ You can customize the behavior of the script by modifying the command-line argum
 --save: Path to the output CSV file where the results will be saved.
 --mode: The mode in which to run the script. Choose 'deductive_coding'.
 --codebook_format: The format of the codebook. Default is 'codebook'. Alternatively you can choose 'example', for more details see the original paper.
---context: Whether to include context for the deductive coding (1 = include, 0 = do not include). Default is 0.
+--context: Whether to include context for the deductive coding (True = include, False = do not include). Default is False.
 --number_of_example: The number of examples to include in the codebook prompt. Default is 5.
 --voter: The number of geneartions for each data point. If n > 1, the final code is an aggreation of mutiple generations by majority vote. Default is 1.
 --language: The language of the input data and codebook (en, fr, or ch). Default is 'en'.
 --key: Your OpenAI API key. If not provided, the script will attempt to use the OPENAI_API_KEY environment variable.
---model: The name of the GPT model to use (e.g., 'gpt-4-0613', 'text-davinci-003'). Default is 'gpt-4-0613'.
---verification: Whether to calculate Cohen's Kappa and Krippendorff's Alpha for inter-coder reliability (1 = calculate, 0 = do not calculate). Default is 1. Note: code column is required in the input CSV file.
---batch_size: The batch size for saving the coding progress. Default is 100 (reuslts will be saved for everyon 100 data points).
---na_label: Whether to include an "NA" label (1 = include, 0 = do not include). Default is 0.
---cot: Enable chain-of-thought coding with explanation as part of the output (1 = enable, 0 = disable). Default is 0.
+--model: The name of the GPT model to use (e.g., 'gpt-4-0613', 'gpt-3.5-turbo'). Default is 'gpt-4o-2024-05-13'.
+--verification: Whether to calculate Cohen's Kappa and Krippendorff's Alpha for inter-coder reliability (True = calculate, False = do not calculate). Default is True. Note: code column is required in the input CSV file.
+--batch: The batch size for saving the coding progress. Default is 100 (reuslts will be saved for everyon 100 data points).
+--na_label: Whether to include an "NA" label (True = include, False = do not include). Default is False.
+--cot: Enable chain-of-thought coding with explanation as part of the output (True = enable, False = disable). Default is False.
 ```
 
 ## Contact
